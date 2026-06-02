@@ -1,9 +1,9 @@
-import Anthropic from '@anthropic-ai/sdk'
+import { GoogleGenAI } from '@google/genai'
 import type { SearchResult } from '../../shared/types.js'
 import { researchDates } from './dates.js'
 import { formatSourcesForPrompt, buildIndexedArticles } from './sources.js'
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY?.trim() })
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY?.trim() })
 
 type SynthesisProgress = {
   message?: string
@@ -20,7 +20,7 @@ export async function synthesize(
   const sources = formatSourcesForPrompt(indexed)
 
   onProgress?.({
-    message: `Prepared ${indexed.length} articles from ${results.length} searches. Calling Claude…`,
+    message: `Prepared ${indexed.length} articles from ${results.length} searches. Calling Gemini…`,
   })
 
   const prompt = `Write a research memo on the following topic for an individual investor.
@@ -75,24 +75,22 @@ Sources:
 
 ${sources}`
 
-  console.log('[synthesize] starting stream, apiKey set:', !!process.env.ANTHROPIC_API_KEY, 'promptBytes:', Buffer.byteLength(prompt))
-  onProgress?.({ message: 'Claude is streaming the memo…' })
+  console.log('[synthesize] starting stream, apiKey set:', !!process.env.GEMINI_API_KEY, 'promptBytes:', Buffer.byteLength(prompt))
+  onProgress?.({ message: 'Gemini is streaming the memo…' })
 
   let text = ''
   try {
-    const stream = anthropic.messages.stream({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 2500,
-      messages: [{ role: 'user', content: prompt }],
+    const stream = await ai.models.generateContentStream({
+      model: 'gemini-2.0-flash',
+      contents: prompt,
+      config: { maxOutputTokens: 2500 },
     })
 
-    for await (const event of stream) {
-      if (
-        event.type === 'content_block_delta' &&
-        event.delta.type === 'text_delta'
-      ) {
-        text += event.delta.text
-        onProgress?.({ delta: event.delta.text })
+    for await (const chunk of stream) {
+      const delta = chunk.text
+      if (delta) {
+        text += delta
+        onProgress?.({ delta })
       }
     }
   } catch (err) {
@@ -101,7 +99,6 @@ ${sources}`
     throw err
   }
 
-  if (!text) throw new Error('Claude returned an empty memo')
+  if (!text) throw new Error('Gemini returned an empty memo')
   return text
 }
-
