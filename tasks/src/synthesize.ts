@@ -79,7 +79,7 @@ ${sources}`
 
   let text = ''
   const stream = anthropic.messages.stream({
-    model: 'claude-sonnet-4-5',
+    model: 'claude-sonnet-4-6',
     max_tokens: 2500,
     messages: [{ role: 'user', content: prompt }],
   })
