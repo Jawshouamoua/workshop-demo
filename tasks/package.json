@@ -4,10 +4,12 @@
   "type": "module",
   "scripts": {
     "dev": "tsc --watch",
-    "build": "tsc"
+    "build": "tsc",
+    "start": "node dist/tasks/src/index.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
+    "@renderinc/sdk": "^0.5.1",
     "exa-js": "^1.5.12"
   },
   "devDependencies": {
