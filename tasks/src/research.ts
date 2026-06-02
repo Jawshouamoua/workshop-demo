@@ -2,7 +2,7 @@ import { buildQueries } from './queries.js'
 import { searchOne } from './search.js'
 import { buildIndexedArticles, toSourceRefs } from './sources.js'
 import { synthesize } from './synthesize.js'
-import { Render } from '@renderinc/sdk'
+import { ClientError, Render, ServerError } from '@renderinc/sdk'
 import type { ResearchEvent, SearchResult } from '../../shared/types.js'
 
 const serviceSlug = process.env.WORKFLOW_SERVICE_SLUG ?? 'your-service-slug'
@@ -47,7 +47,11 @@ export async function research(
         onEvent({ type: 'search:done', index, articleCount: result.articles.length })
         return result
       } catch (err) {
-        onEvent({ type: 'search:failed', index, error: String(err) })
+        let msg = String(err)
+        if ((err instanceof ClientError || err instanceof ServerError) && err.response) {
+          msg = `${err.message} — ${JSON.stringify(err.response)}`
+        }
+        onEvent({ type: 'search:failed', index, error: msg })
         throw err
       }
     })
