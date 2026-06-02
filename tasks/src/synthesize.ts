@@ -75,23 +75,30 @@ Sources:
 
 ${sources}`
 
+  console.log('[synthesize] starting stream, apiKey set:', !!process.env.ANTHROPIC_API_KEY, 'promptBytes:', Buffer.byteLength(prompt))
   onProgress?.({ message: 'Claude is streaming the memo…' })
 
   let text = ''
-  const stream = anthropic.messages.stream({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 2500,
-    messages: [{ role: 'user', content: prompt }],
-  })
+  try {
+    const stream = anthropic.messages.stream({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 2500,
+      messages: [{ role: 'user', content: prompt }],
+    })
 
-  for await (const event of stream) {
-    if (
-      event.type === 'content_block_delta' &&
-      event.delta.type === 'text_delta'
-    ) {
-      text += event.delta.text
-      onProgress?.({ delta: event.delta.text })
+    for await (const event of stream) {
+      if (
+        event.type === 'content_block_delta' &&
+        event.delta.type === 'text_delta'
+      ) {
+        text += event.delta.text
+        onProgress?.({ delta: event.delta.text })
+      }
     }
+  } catch (err) {
+    const cause = (err as NodeJS.ErrnoException & { cause?: unknown }).cause
+    console.error('[synthesize] stream error:', err, 'cause:', cause)
+    throw err
   }
 
   if (!text) throw new Error('Claude returned an empty memo')
