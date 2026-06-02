@@ -3,7 +3,7 @@ import type { SearchResult } from '../../shared/types.js'
 import { researchDates } from './dates.js'
 import { formatSourcesForPrompt, buildIndexedArticles } from './sources.js'
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY?.trim() })
 
 type SynthesisProgress = {
   message?: string
